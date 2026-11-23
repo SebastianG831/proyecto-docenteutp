@@ -1,13 +1,16 @@
-# Backend
-docenteutp-backend/target/
-docenteutp-backend/src/main/resources/application.properties
+# Backend (Node.js / Express)
+docenteutp-backend/node_modules/
+docenteutp-backend/.env
+docenteutp-backend/dist/
 
-# Frontend
+# Frontend (React / Vite)
 docenteutp-frontend/node_modules/
 docenteutp-frontend/dist/
-docenteutp-frontend/.angular/
+docenteutp-frontend/.env
+*.tsbuildinfo
 
 # Editor y sistema
 .idea/
 .vscode/
 *.log
+.DS_Store
