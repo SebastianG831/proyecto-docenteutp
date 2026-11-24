@@ -1,0 +1,41 @@
+<div class="guardados-page">
+  <header class="topbar">
+    <a class="brand" routerLink="/" aria-label="DocenteUTP, inicio">
+      <span class="brand-mark" aria-hidden="true">
+        <img class="brand-icon" src="assets/figma/graduation/icon.svg" alt="" />
+      </span>
+      <span class="brand-copy">
+        <span class="brand-name">DocenteUTP</span>
+        <span class="brand-tagline">Opiniones que orientan</span>
+      </span>
+    </a>
+
+    <nav class="main-nav" aria-label="Navegación principal">
+      <a class="nav-link" routerLink="/buscar">Explorar docentes</a>
+      <a class="nav-link" routerLink="/mis-resenas">Mis reseñas</a>
+      <a class="nav-link" href="#como-funciona">Cómo funciona</a>
+    </nav>
+
+    <div class="user-controls">
+      <a class="saved-link is-active" routerLink="/guardados">
+        <img src="assets/figma/bookmark/icon.svg" alt="" />
+        <span>Guardados</span>
+      </a>
+      <span class="avatar" aria-label="Usuario">{{ getInitials(user()?.nombre) }}</span>
+    </div>
+  </header>
+
+  <main class="page-content">
+    <header class="page-header">
+      <h1>Mis guardados</h1>
+      <p class="page-description">Docentes que has marcado para revisar después</p>
+    </header>
+
+    <div class="empty-state">
+      <img src="assets/figma/bookmark/icon.svg" alt="" class="empty-icon" />
+      <h2>No tienes docentes guardados</h2>
+      <p>Cuando encuentres un docente que te interese, haz clic en el icono de marcador para guardarlo aquí.</p>
+      <a routerLink="/buscar" class="btn-primary">Explorar docentes</a>
+    </div>
+  </main>
+</div>

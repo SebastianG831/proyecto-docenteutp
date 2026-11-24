@@ -1,0 +1,63 @@
+<div class="auth-page">
+  <header class="topbar">
+    <a class="brand" routerLink="/" aria-label="DocenteUTP, inicio">
+      <span class="brand-mark" aria-hidden="true">
+        <img class="brand-icon" src="assets/figma/graduation/icon.svg" alt="" />
+      </span>
+      <span class="brand-copy">
+        <span class="brand-name">DocenteUTP</span>
+        <span class="brand-tagline">Opiniones que orientan</span>
+      </span>
+    </a>
+  </header>
+
+  <main class="auth-main">
+    <div class="auth-card">
+      <header class="auth-header">
+        <h1>Iniciar sesión</h1>
+        <p>Accede a tu cuenta para escribir reseñas y guardar docentes</p>
+      </header>
+
+      <form class="auth-form" (ngSubmit)="onSubmit()">
+        <div class="form-group">
+          <label for="email">Correo electrónico</label>
+          <input
+            id="email"
+            type="email"
+            autocomplete="email"
+            [(ngModel)]="email"
+            name="email"
+            required
+            placeholder="tu@correo.utp.edu.pe"
+            [disabled]="loading()"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="password">Contraseña</label>
+          <input
+            id="password"
+            type="password"
+            autocomplete="current-password"
+            [(ngModel)]="password"
+            name="password"
+            required
+            placeholder="••••••••"
+            [disabled]="loading()"
+          />
+        </div>
+
+        <div class="form-error" *ngIf="error()">{{ error() }}</div>
+
+        <button type="submit" class="btn-primary" [disabled]="!canSubmit()">
+          <span *ngIf="loading()">Entrando...</span>
+          <span *ngIf="!loading()">Iniciar sesión</span>
+        </button>
+      </form>
+
+      <footer class="auth-footer">
+        <p>¿No tienes cuenta? <a routerLink="/registro">Regístrate</a></p>
+      </footer>
+    </div>
+  </main>
+</div>

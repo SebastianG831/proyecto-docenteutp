@@ -1,0 +1,89 @@
+<div class="reportes-page">
+  <header class="topbar">
+    <a class="brand" routerLink="/" aria-label="DocenteUTP, inicio">
+      <span class="brand-mark" aria-hidden="true">
+        <img class="brand-icon" src="assets/figma/graduation/icon.svg" alt="" />
+      </span>
+      <span class="brand-copy">
+        <span class="brand-name">DocenteUTP</span>
+        <span class="brand-tagline">Opiniones que orientan</span>
+      </span>
+    </a>
+
+    <nav class="main-nav" aria-label="Navegación principal">
+      <a class="nav-link" routerLink="/buscar">Explorar docentes</a>
+      <a class="nav-link" routerLink="/mis-resenas">Mis reseñas</a>
+      <a class="nav-link" href="#como-funciona">Cómo funciona</a>
+    </nav>
+
+    <div class="user-controls">
+      <a class="saved-link" routerLink="/guardados">
+        <img src="assets/figma/bookmark/icon.svg" alt="" />
+        <span>Guardados</span>
+      </a>
+      <span class="avatar" aria-label="Admin">AD</span>
+    </div>
+  </header>
+
+  <main class="page-content">
+    <header class="page-header">
+      <h1>Panel de administración</h1>
+      <p class="page-description">Reportes de docentes y moderación de reseñas</p>
+    </header>
+
+    <div class="loading-state" *ngIf="loading()">
+      <div class="spinner"></div>
+      <p>Cargando reportes...</p>
+    </div>
+
+    <div class="error-state" *ngIf="error() && !loading()">
+      <p class="error-message">{{ error() }}</p>
+      <button class="retry-btn" (click)="cargarReportes()">Reintentar</button>
+    </div>
+
+    <div class="empty-state" *ngIf="!loading() && !error() && reportes().length === 0">
+      <img src="assets/figma/search/icon.svg" alt="" class="empty-icon" />
+      <h2>No hay reportes disponibles</h2>
+      <p>No hay docentes con reseñas pendientes de moderación.</p>
+    </div>
+
+    <div class="reportes-table-container" *ngIf="!loading() && reportes().length > 0">
+      <table class="reportes-table">
+        <thead>
+          <tr>
+            <th>Docente</th>
+            <th>Facultad</th>
+            <th>Promedio general</th>
+            <th>Dominio</th>
+            <th>Claridad</th>
+            <th>Empatía</th>
+            <th>Total reseñas</th>
+            <th>Pendientes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let reporte of reportes()">
+            <td>
+              <div class="docente-cell">
+                <strong>{{ reporte.docenteNombre }}</strong>
+              </div>
+            </td>
+            <td>{{ reporte.facultad }}</td>
+            <td>
+              <span class="rating-badge">{{ reporte.promedioGeneral.toFixed(1) }}</span>
+            </td>
+            <td>{{ reporte.promedioDominio.toFixed(1) }}</td>
+            <td>{{ reporte.promedioClaridad.toFixed(1) }}</td>
+            <td>{{ reporte.promedioEmpatia.toFixed(1) }}</td>
+            <td>{{ reporte.totalResenas }}</td>
+            <td>
+              <span class="pending-badge" [class.has-pending]="reporte.resenasPendientes > 0">
+                {{ reporte.resenasPendientes }}
+              </span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>

@@ -1,0 +1,168 @@
+<div class="modal-overlay" (click)="onBackdropClick($event)" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div class="modal-container" (click)="$event.stopPropagation()">
+    <header class="modal-header">
+      <h2 id="modal-title">Publicar reseña</h2>
+      <p class="modal-subtitle">Para {{ docente().nombre }} · {{ docente().facultad }}</p>
+      <button class="modal-close" (click)="onCancel()" aria-label="Cerrar">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18 6L6 18M6 6l12 12" />
+        </svg>
+      </button>
+    </header>
+
+    <form class="modal-body" (ngSubmit)="onSubmit()">
+      <div class="form-section">
+        <label class="form-label">Curso <span class="required">*</span></label>
+        <div class="curso-selector" role="radiogroup" aria-label="Seleccionar curso">
+          <button
+            type="button"
+            class="curso-option"
+            [class.selected]="selectedCurso()?.id === curso.id"
+            (click)="setCurso(curso)"
+            *ngFor="let curso of cursos()"
+            [attr.aria-pressed]="selectedCurso()?.id === curso.id"
+          >
+            <span class="curso-codigo">{{ curso.codigo }}</span>
+            <span class="curso-nombre">{{ curso.nombre }}</span>
+          </button>
+          <div class="curso-empty" *ngIf="cursos().length === 0">
+            No hay cursos disponibles para este docente
+          </div>
+        </div>
+        <div class="form-error" *ngIf="errores()['general']">{{ errores()['general'] }}</div>
+      </div>
+
+      <div class="form-section">
+        <fieldset class="rating-fieldset">
+          <legend class="form-label">Dominio del tema <span class="required">*</span></legend>
+          <div class="rating-input" role="radiogroup" aria-label="Calificar dominio del 1 al 5">
+            <button
+              type="button"
+              class="star-btn"
+              [class.filled]="dominio() >= star"
+              (click)="setRating('dominio', star)"
+              (keydown.enter)="setRating('dominio', star)"
+              (keydown.space)="setRating('dominio', star)"
+              tabindex="0"
+              role="radio"
+              [attr.aria-checked]="dominio() === star"
+              *ngFor="let star of getStarArray()"
+            >
+              ★
+            </button>
+          </div>
+          <span class="rating-value">{{ dominio() }}/5</span>
+        </fieldset>
+      </div>
+
+      <div class="form-section">
+        <fieldset class="rating-fieldset">
+          <legend class="form-label">Claridad explicando <span class="required">*</span></legend>
+          <div class="rating-input" role="radiogroup" aria-label="Calificar claridad del 1 al 5">
+            <button
+              type="button"
+              class="star-btn"
+              [class.filled]="claridad() >= star"
+              (click)="setRating('claridad', star)"
+              (keydown.enter)="setRating('claridad', star)"
+              (keydown.space)="setRating('claridad', star)"
+              tabindex="0"
+              role="radio"
+              [attr.aria-checked]="claridad() === star"
+              *ngFor="let star of getStarArray()"
+            >
+              ★
+            </button>
+          </div>
+          <span class="rating-value">{{ claridad() }}/5</span>
+        </fieldset>
+      </div>
+
+      <div class="form-section">
+        <fieldset class="rating-fieldset">
+          <legend class="form-label">Empatía con estudiantes <span class="required">*</span></legend>
+          <div class="rating-input" role="radiogroup" aria-label="Calificar empatía del 1 al 5">
+            <button
+              type="button"
+              class="star-btn"
+              [class.filled]="empatia() >= star"
+              (click)="setRating('empatia', star)"
+              (keydown.enter)="setRating('empatia', star)"
+              (keydown.space)="setRating('empatia', star)"
+              tabindex="0"
+              role="radio"
+              [attr.aria-checked]="empatia() === star"
+              *ngFor="let star of getStarArray()"
+            >
+              ★
+            </button>
+          </div>
+          <span class="rating-value">{{ empatia() }}/5</span>
+        </fieldset>
+      </div>
+
+      <div class="form-section">
+        <label class="form-label">Nivel de dificultad <span class="required">*</span></label>
+        <div class="dificultad-selector" role="radiogroup" aria-label="Seleccionar nivel de dificultad">
+          <button
+            type="button"
+            class="dificultad-btn"
+            [class.selected]="dificultad() === dif"
+            (click)="setDificultad(dif)"
+            *ngFor="let dif of NivelDificultad"
+            [attr.aria-pressed]="dificultad() === dif"
+          >
+            <span class="dificultad-nombre">{{ dif }}</span>
+            <span class="dificultad-desc" [class]="'desc-' + dif.toLowerCase()">
+              <ng-container [ngSwitch]="dif">
+                <span *ngSwitchCase="'LIGERO'">Carga de trabajo suave</span>
+                <span *ngSwitchCase="'MODERADO'">Equilibrado</span>
+                <span *ngSwitchCase="'EXIGENTE'">Muy demandante</span>
+              </ng-container>
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <label class="form-label" for="comentario">Comentario <span class="required">*</span></label>
+        <textarea
+          id="comentario"
+          class="form-textarea"
+          [(ngModel)]="comentario"
+          (ngModelChange)="onComentarioChange()"
+          name="comentario"
+          rows="5"
+          placeholder="Describe tu experiencia con este docente... (mínimo 30, máximo 500 caracteres)"
+          [attr.aria-invalid]="!comentarioValido() && comentarioLength() > 0"
+          [attr.aria-describedby]="comentarioLength() > 0 ? 'comentario-count' : null"
+        ></textarea>
+        <div class="textarea-footer">
+          <span id="comentario-count" class="char-count" [class.valid]="comentarioValido()" [class.warning]="comentarioLength() > 0 && comentarioLength() < 30" [class.error]="comentarioLength() > 500">
+            {{ comentarioLength() }}/500 caracteres
+          </span>
+          <span class="char-hint" *ngIf="comentarioLength() > 0 && comentarioLength() < 30">Mínimo 30 caracteres</span>
+        </div>
+        <div class="form-error" *ngIf="errores()['comentario']">{{ errores()['comentario'] }}</div>
+      </div>
+
+      <div class="moderation-notice">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+        </svg>
+        <div class="notice-content">
+          <strong>Nota de moderación:</strong>
+          <span>Tu reseña será revisada por nuestro equipo antes de publicarse. Este proceso suele tomar 24-48 horas. Recibirás una notificación cuando sea aprobada o si se requieren cambios.</span>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn-secondary" (click)="onCancel()" [disabled]="submitting()">Cancelar</button>
+        <button type="submit" class="btn-primary" [disabled]="!canSubmit()">
+          <span *ngIf="submitting()">Enviando...</span>
+          <span *ngIf="!submitting()">Publicar reseña</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

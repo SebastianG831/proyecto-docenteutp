@@ -1,0 +1,248 @@
+<div class="perfil-page" *ngIf="docente(); else loadingTemplate" data-node-id="4:1" data-name="DocenteUTP - Perfil del Docente">
+  <header class="topbar" data-node-id="4:2" data-name="Navbar">
+    <a class="brand" routerLink="/" aria-label="DocenteUTP, inicio" data-node-id="4:3" data-name="Brand">
+      <span class="brand-mark" aria-hidden="true" data-node-id="4:4">
+        <img class="brand-icon" src="assets/figma/graduation/icon.svg" alt="" data-node-id="4:6" />
+      </span>
+      <span class="brand-copy">
+        <span class="brand-name">DocenteUTP</span>
+        <span class="brand-tagline">Opiniones que orientan</span>
+      </span>
+    </a>
+
+    <nav class="main-nav" aria-label="Navegación principal" data-node-id="4:12">
+      <a class="nav-link" routerLink="/buscar">Explorar docentes</a>
+      <a class="nav-link" routerLink="/mis-resenas">Mis reseñas</a>
+      <a class="nav-link" href="#como-funciona">Cómo funciona</a>
+    </nav>
+
+    <div class="user-controls" data-node-id="4:16">
+      <a class="saved-link" routerLink="/guardados" data-node-id="4:17">
+        <img src="assets/figma/bookmark/icon.svg" alt="" data-node-id="4:18" />
+        <span>Guardados</span>
+      </a>
+      <span class="avatar" aria-label="Usuario: Ana María" data-node-id="4:21">AM</span>
+    </div>
+  </header>
+
+  <main class="page-content">
+    <nav class="breadcrumb" aria-label="Ruta de navegación">
+      <ol>
+        <li><a routerLink="/">Inicio</a></li>
+        <li><a routerLink="/buscar">Explorar docentes</a></li>
+        <li><span aria-current="page">{{ docente()!.nombre }}</span></li>
+      </ol>
+    </nav>
+
+    <div class="perfil-layout">
+      <article class="perfil-main">
+        <header class="perfil-header">
+          <div class="perfil-avatar">
+            <span>{{ getInitials(docente()!.nombre) }}</span>
+          </div>
+          <div class="perfil-title">
+            <h1>{{ docente()!.nombre }}</h1>
+            <div class="perfil-meta">
+              <span class="facultad">{{ docente()!.facultad }}</span>
+              <span class="sede">{{ docente()!.sede }}</span>
+              <span class="verified-badge" *ngIf="docente()!.verificado" aria-label="Docente verificado">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 6L9 17l-5-5" />
+                </svg>
+                Verificado
+              </span>
+            </div>
+          </div>
+          <div class="perfil-rating-summary">
+            <div class="rating-big">
+              <span class="rating-value">{{ docente()!.calificacion.toFixed(1) }}</span>
+              <div class="stars" aria-label="{{ docente()!.calificacion }} de 5 estrellas">
+                <span class="star filled" *ngFor="let s of getStars(docente()!.calificacion)">★</span>
+                <span class="star" *ngFor="let s of getEmptyStars(docente()!.calificacion)">★</span>
+              </div>
+              <span class="reviews-count">{{ docente()!.totalResenas }} reseña{{ docente()!.totalResenas !== 1 ? 's' : '' }}</span>
+            </div>
+            <button class="write-review-btn" (click)="abrirModalResena()">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+              </svg>
+              Escribir reseña
+            </button>
+          </div>
+        </header>
+
+        <section class="criterios-section" aria-labelledby="criterios-title">
+          <h2 id="criterios-title">Calificaciones por criterio</h2>
+          <div class="criterios-grid">
+            <app-barra-criterio
+              *ngFor="let criterio of criterios()"
+              [nombre]="criterio.criterio"
+              [valor]="criterio.promedio"
+            ></app-barra-criterio>
+          </div>
+        </section>
+
+        <section class="resumen-section" *ngIf="docente()!.resumen" aria-labelledby="resumen-title">
+          <h2 id="resumen-title">Resumen del docente</h2>
+          <p>{{ docente()!.resumen }}</p>
+        </section>
+
+        <section class="info-section" aria-labelledby="info-title">
+          <h2 id="info-title">Información académica</h2>
+          <dl class="info-grid">
+            <div class="info-item">
+              <dt>Nivel de dificultad</dt>
+              <dd><span class="difficulty-badge" [class]="'difficulty-' + (docente()!.nivelDificultad || '').toLowerCase()">{{ docente()!.nivelDificultad || 'No especificado' }}</span></dd>
+            </div>
+            <div class="info-item">
+              <dt>Estilo de evaluación</dt>
+              <dd>{{ docente()!.estiloEvaluacion || 'No especificado' }}</dd>
+            </div>
+            <div class="info-item">
+              <dt>Cursos que imparte</dt>
+              <dd>
+                <ul class="cursos-list">
+                  <li *ngFor="let curso of docente()!.cursos">{{ curso.nombre }} ({{ curso.codigo }})</li>
+                  <li *ngIf="docente()!.cursos.length === 0">No hay cursos registrados</li>
+                </ul>
+              </dd>
+            </div>
+            <div class="info-item" *ngIf="docente()!.etiquetas.length > 0">
+              <dt>Etiquetas</dt>
+              <dd>
+                <div class="etiquetas">
+                  <span class="etiqueta" *ngFor="let etiqueta of docente()!.etiquetas">{{ etiqueta }}</span>
+                </div>
+              </dd>
+            </div>
+          </dl>
+        </section>
+
+        <section class="resenas-section" aria-labelledby="resenas-title">
+          <header class="section-header">
+            <h2 id="resenas-title">Reseñas de estudiantes</h2>
+            <span class="resenas-count">{{ resenas().length }} reseña{{ resenas().length !== 1 ? 's' : '' }}</span>
+          </header>
+
+          <div class="resenas-list" *ngIf="resenas().length > 0; else noResenas">
+            <article class="resena-card" *ngFor="let resena of resenas()">
+              <header class="resena-header">
+                <div class="resena-author">
+                  <span class="author-avatar">{{ getInitials(resena.cursoNombre) }}</span>
+                  <div class="author-info">
+                    <span class="author-name">Estudiante de {{ resena.cursoNombre }}</span>
+                    <span class="resena-date">{{ tiempoTranscurrido(resena.fecha) }}</span>
+                  </div>
+                </div>
+                <div class="resena-rating">
+                  <div class="stars">
+                    <span class="star filled" *ngFor="let s of getStars(resena.calificacion)">★</span>
+                    <span class="star" *ngFor="let s of getEmptyStars(resena.calificacion)">★</span>
+                  </div>
+                  <span class="rating-value">{{ resena.calificacion.toFixed(1) }}</span>
+                </div>
+              </header>
+
+              <div class="resena-criterios">
+                <div class="criterio-mini">
+                  <span class="criterio-label">Dominio</span>
+                  <span class="criterio-value">{{ resena.dominio }}</span>
+                </div>
+                <div class="criterio-mini">
+                  <span class="criterio-label">Claridad</span>
+                  <span class="criterio-value">{{ resena.claridad }}</span>
+                </div>
+                <div class="criterio-mini">
+                  <span class="criterio-label">Empatía</span>
+                  <span class="criterio-value">{{ resena.empatia }}</span>
+                </div>
+                <div class="criterio-mini">
+                  <span class="criterio-label">Dificultad</span>
+                  <span class="criterio-value difficulty-badge" [class]="'difficulty-' + resena.dificultad.toLowerCase()">{{ resena.dificultad }}</span>
+                </div>
+              </div>
+
+              <p class="resena-comentario" *ngIf="resena.comentario">{{ resena.comentario }}</p>
+            </article>
+          </div>
+
+          <ng-template #noResenas>
+            <div class="empty-resenas">
+              <p>Este docente aún no tiene reseñas aprobadas.</p>
+              <button class="write-review-btn" (click)="abrirModalResena()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                </svg>
+                Sé el primero en reseñar
+              </button>
+            </div>
+          </ng-template>
+        </section>
+      </article>
+
+      <aside class="perfil-sidebar">
+        <div class="sidebar-card">
+          <h3>Datos rápidos</h3>
+          <dl class="quick-facts">
+            <div>
+              <dt>Facultad</dt>
+              <dd>{{ docente()!.facultad }}</dd>
+            </div>
+            <div>
+              <dt>Sede</dt>
+              <dd>{{ docente()!.sede }}</dd>
+            </div>
+            <div>
+              <dt>Curso principal</dt>
+              <dd>{{ docente()!.cursos[0]?.nombre || 'No especificado' }}</dd>
+            </div>
+            <div>
+              <dt>Total reseñas</dt>
+              <dd>{{ docente()!.totalResenas }}</dd>
+            </div>
+            <div>
+              <dt>Verificado</dt>
+              <dd>{{ docente()!.verificado ? 'Sí' : 'No' }}</dd>
+            </div>
+          </dl>
+        </div>
+
+        <div class="sidebar-card">
+          <h3>Acciones</h3>
+          <div class="sidebar-actions">
+            <button class="action-btn" (click)="abrirModalResena()">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+              </svg>
+              Escribir reseña
+            </button>
+            <button class="action-btn secondary" routerLink="/buscar">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8" />
+                <path d="M21 21l-4.35-4.35" />
+              </svg>
+              Buscar otros docentes
+            </button>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <app-modal-resena
+    *ngIf="showResenaModal()"
+    [docente]="docente()!"
+    (cerrar)="cerrarModalResena()"
+    (enviado)="onResenaEnviada()"
+  ></app-modal-resena>
+</div>
+
+<ng-template #loadingTemplate>
+  <div class="loading-fullscreen">
+    <div class="spinner"></div>
+    <p>Cargando perfil...</p>
+  </div>
+</ng-template>

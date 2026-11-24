@@ -1,0 +1,99 @@
+<div class="mis-resenas-page">
+  <header class="topbar">
+    <a class="brand" routerLink="/" aria-label="DocenteUTP, inicio">
+      <span class="brand-mark" aria-hidden="true">
+        <img class="brand-icon" src="assets/figma/graduation/icon.svg" alt="" />
+      </span>
+      <span class="brand-copy">
+        <span class="brand-name">DocenteUTP</span>
+        <span class="brand-tagline">Opiniones que orientan</span>
+      </span>
+    </a>
+
+    <nav class="main-nav" aria-label="Navegación principal">
+      <a class="nav-link" routerLink="/buscar">Explorar docentes</a>
+      <a class="nav-link is-active" routerLink="/mis-resenas">Mis reseñas</a>
+      <a class="nav-link" href="#como-funciona">Cómo funciona</a>
+    </nav>
+
+    <div class="user-controls">
+      <a class="saved-link" routerLink="/guardados">
+        <img src="assets/figma/bookmark/icon.svg" alt="" />
+        <span>Guardados</span>
+      </a>
+      <span class="avatar" aria-label="Usuario">{{ getInitials(user()?.nombre) }}</span>
+    </div>
+  </header>
+
+  <main class="page-content">
+    <header class="page-header">
+      <h1>Mis reseñas</h1>
+      <p class="page-description">Gestiona las reseñas que has publicado</p>
+    </header>
+
+    <div class="loading-state" *ngIf="loading()">
+      <div class="spinner"></div>
+      <p>Cargando tus reseñas...</p>
+    </div>
+
+    <div class="error-state" *ngIf="error() && !loading()">
+      <p class="error-message">{{ error() }}</p>
+      <button class="retry-btn" (click)="cargarResenas()">Reintentar</button>
+    </div>
+
+    <div class="empty-state" *ngIf="!loading() && !error() && resenas().length === 0">
+      <img src="assets/figma/search/icon.svg" alt="" class="empty-icon" />
+      <h2>No has escrito reseñas aún</h2>
+      <p>Tu opinión ayuda a otros estudiantes a elegir mejor.</p>
+      <a routerLink="/buscar" class="btn-primary">Explorar docentes</a>
+    </div>
+
+    <div class="resenas-list" *ngIf="!loading() && resenas().length > 0">
+      <article class="resena-card" *ngFor="let resena of resenas()">
+        <header class="resena-header">
+          <div class="resena-docente">
+            <a [routerLink]="['/docente', resena.docenteId]" class="docente-link">
+              <h3>{{ resena.docenteNombre }}</h3>
+            </a>
+            <span class="resena-curso">{{ resena.cursoNombre }}</span>
+          </div>
+          <span class="estado-badge" [class]="getEstadoClass(resena.estado)">
+            {{ getEstadoLabel(resena.estado) }}
+          </span>
+        </header>
+
+        <div class="resena-meta">
+          <span class="resena-date">{{ tiempoTranscurrido(resena.fecha) }}</span>
+          <div class="resena-rating">
+            <div class="stars" aria-label="{{ resena.calificacion }} de 5 estrellas">
+              <span class="star filled" *ngFor="let s of getStars(resena.calificacion)">★</span>
+              <span class="star" *ngFor="let s of getEmptyStars(resena.calificacion)">★</span>
+            </div>
+            <span class="rating-value">{{ resena.calificacion.toFixed(1) }}</span>
+          </div>
+        </div>
+
+        <div class="resena-criterios">
+          <div class="criterio-mini">
+            <span class="criterio-label">Dominio</span>
+            <span class="criterio-value">{{ resena.dominio }}</span>
+          </div>
+          <div class="criterio-mini">
+            <span class="criterio-label">Claridad</span>
+            <span class="criterio-value">{{ resena.claridad }}</span>
+          </div>
+          <div class="criterio-mini">
+            <span class="criterio-label">Empatía</span>
+            <span class="criterio-value">{{ resena.empatia }}</span>
+          </div>
+          <div class="criterio-mini">
+            <span class="criterio-label">Dificultad</span>
+            <span class="criterio-value difficulty-badge" [class]="'difficulty-' + resena.dificultad.toLowerCase()">{{ resena.dificultad }}</span>
+          </div>
+        </div>
+
+        <p class="resena-comentario" *ngIf="resena.comentario">{{ resena.comentario }}</p>
+      </article>
+    </div>
+  </main>
+</div>
