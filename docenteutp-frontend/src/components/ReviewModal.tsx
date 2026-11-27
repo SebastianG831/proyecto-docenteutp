@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { Info, Send, ShieldCheck, X } from 'lucide-react';
+import { ChevronDown, ChevronUp, Info, Send, ShieldCheck, X } from 'lucide-react';
 import type { Curso, NivelDificultad } from '../types/api';
 import { resenasApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -28,7 +28,14 @@ export function ReviewModal({
   const [dominio, setDominio] = useState(4);
   const [claridad, setClaridad] = useState(5);
   const [empatia, setEmpatia] = useState(4);
+  const [retroalimentacion, setRetroalimentacion] = useState(4);
+  const [organizacion, setOrganizacion] = useState(4);
+  const [puntualidad, setPuntualidad] = useState(4);
   const [dificultad, setDificultad] = useState<NivelDificultad>('MODERADO');
+  const [horasEstudioSemanal, setHorasEstudioSemanal] = useState<number>(4);
+  const [recomienda, setRecomienda] = useState<boolean>(true);
+  const [notaObtenida, setNotaObtenida] = useState<string>('');
+  const [showExtra, setShowExtra] = useState(false);
   const [comentario, setComentario] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -56,7 +63,13 @@ export function ReviewModal({
         dominio,
         claridad,
         empatia,
+        retroalimentacion,
+        organizacion,
+        puntualidad,
         dificultad,
+        horasEstudioSemanal,
+        recomienda,
+        notaObtenida: notaObtenida !== '' ? Number(notaObtenida) : null,
         comentario: trimmed,
       });
       showToast('Reseña enviada a moderación. ¡Gracias por aportar a la comunidad UTP!', 'success');
@@ -118,7 +131,7 @@ export function ReviewModal({
               display: 'flex',
               flexDirection: 'column',
               gap: 12,
-              marginBottom: 18,
+              marginBottom: 16,
               padding: '12px 14px',
               background: 'var(--bg-canvas)',
               borderRadius: 'var(--radius-md)',
@@ -158,7 +171,7 @@ export function ReviewModal({
             <textarea
               id="resena-comentario"
               className="form-control"
-              rows={4}
+              rows={3}
               maxLength={500}
               placeholder="Comparte detalles útiles sobre la metodología, la evaluación o la dinámica de clase..."
               value={comentario}
@@ -169,21 +182,101 @@ export function ReviewModal({
             </div>
           </div>
 
-          <div className="form-group">
-            <span className="form-label">Nivel de dificultad</span>
-            <div className="diff-grid">
-              {(['LIGERO', 'MODERADO', 'EXIGENTE'] as NivelDificultad[]).map((lvl) => (
-                <button
-                  key={lvl}
-                  type="button"
-                  className={`diff-option ${dificultad === lvl ? 'selected' : ''}`}
-                  onClick={() => setDificultad(lvl)}
-                >
-                  {lvl === 'LIGERO' ? 'Ligero' : lvl === 'MODERADO' ? 'Moderado' : 'Exigente'}
-                </button>
-              ))}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 140px', gap: 12, marginBottom: 14 }}>
+            <div>
+              <span className="form-label">Nivel de dificultad</span>
+              <div className="diff-grid">
+                {(['LIGERO', 'MODERADO', 'EXIGENTE'] as NivelDificultad[]).map((lvl) => (
+                  <button
+                    key={lvl}
+                    type="button"
+                    className={`diff-option ${dificultad === lvl ? 'selected' : ''}`}
+                    onClick={() => setDificultad(lvl)}
+                  >
+                    {lvl === 'LIGERO' ? 'Ligero' : lvl === 'MODERADO' ? 'Moderado' : 'Exigente'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="form-label" htmlFor="resena-horas">
+                Horas/sem
+              </label>
+              <input
+                id="resena-horas"
+                type="number"
+                min={0}
+                max={40}
+                step={0.5}
+                className="form-control"
+                value={horasEstudioSemanal}
+                onChange={(e) => setHorasEstudioSemanal(Number(e.target.value))}
+              />
             </div>
           </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13.5, fontWeight: 600, cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={recomienda}
+                onChange={(e) => setRecomienda(e.target.checked)}
+              />
+              <span>¿Recomendarías matricularte con este docente?</span>
+            </label>
+
+            <button
+              type="button"
+              className="btn btn-outline btn-sm"
+              onClick={() => setShowExtra((v) => !v)}
+            >
+              {showExtra ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+              <span>Criterios opcionales</span>
+            </button>
+          </div>
+
+          {showExtra && (
+            <div
+              style={{
+                padding: '12px 14px',
+                background: 'var(--bg-canvas)',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--border)',
+                marginBottom: 14,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 10,
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: 13, fontWeight: 600 }}>Retroalimentación</span>
+                <RatingStars value={retroalimentacion} size={18} interactive onChange={setRetroalimentacion} />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: 13, fontWeight: 600 }}>Organización de sesiones</span>
+                <RatingStars value={organizacion} size={18} interactive onChange={setOrganizacion} />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: 13, fontWeight: 600 }}>Puntualidad</span>
+                <RatingStars value={puntualidad} size={18} interactive onChange={setPuntualidad} />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+                <span style={{ fontSize: 13, fontWeight: 600 }}>Nota final obtenida (opcional, 0-20)</span>
+                <input
+                  type="number"
+                  min={0}
+                  max={20}
+                  step={0.5}
+                  placeholder="Ej. 16"
+                  className="form-control"
+                  style={{ width: 95, padding: '6px 10px' }}
+                  value={notaObtenida}
+                  onChange={(e) => setNotaObtenida(e.target.value)}
+                />
+              </div>
+            </div>
+          )}
 
           <div className="trust-note" style={{ marginBottom: 16 }}>
             <ShieldCheck size={20} color="#2b5c8f" style={{ flexShrink: 0, marginTop: 2 }} />

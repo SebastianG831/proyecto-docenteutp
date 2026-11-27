@@ -1,8 +1,9 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   CheckCircle2,
   MapPin,
+  PieChart,
   Scale,
   Search,
   ShieldCheck,
@@ -13,7 +14,7 @@ import type { Docente } from '../types/api';
 import { TeacherCard } from '../components/TeacherCard';
 
 const ESTILOS = [
-  { label: 'Metodología clara', value: 'Explicación clara' },
+  { label: 'Explicación clara', value: 'Explicación clara' },
   { label: 'Alto nivel de exigencia', value: 'Alto nivel de exigencia' },
   { label: 'Evaluación continua', value: 'Evaluación continua' },
   { label: 'Explicación dinámica', value: 'Explicación dinámica' },
@@ -25,22 +26,38 @@ const DIFICULTADES = [
   { label: 'Exigente', value: 'EXIGENTE' },
 ];
 
+const SEDES = [
+  { label: 'Todas las sedes', value: '' },
+  { label: 'Lima Centro', value: 'Lima Centro' },
+  { label: 'Lima Norte', value: 'Lima Norte' },
+  { label: 'Arequipa', value: 'Arequipa' },
+];
+
 export function HomePage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialPerfil = searchParams.get('perfil') || '';
+
   const [queryText, setQueryText] = useState('');
   const [appliedQuery, setAppliedQuery] = useState('');
   const [estilo, setEstilo] = useState('');
   const [dificultad, setDificultad] = useState('');
+  const [sede, setSede] = useState('');
+  const [perfil, setPerfil] = useState(initialPerfil);
   const [sort, setSort] = useState('relevantes');
   const [docentes, setDocentes] = useState<Docente[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
+    setPerfil(searchParams.get('perfil') || '');
+  }, [searchParams]);
+
+  useEffect(() => {
     let active = true;
     setLoading(true);
     setError('');
     docentesApi
-      .buscar({ q: appliedQuery, estilo, dificultad, sort })
+      .buscar({ q: appliedQuery, estilo, dificultad, sede, perfil, sort })
       .then((data) => {
         if (active) setDocentes(data);
       })
@@ -53,7 +70,7 @@ export function HomePage() {
     return () => {
       active = false;
     };
-  }, [appliedQuery, estilo, dificultad, sort]);
+  }, [appliedQuery, estilo, dificultad, sede, perfil, sort]);
 
   const handleSearch = (e: FormEvent) => {
     e.preventDefault();
@@ -65,20 +82,25 @@ export function HomePage() {
     setAppliedQuery('');
     setEstilo('');
     setDificultad('');
+    setSede('');
+    setPerfil('');
+    if (searchParams.has('perfil')) {
+      setSearchParams({});
+    }
   };
 
-  const hasFilters = Boolean(appliedQuery || estilo || dificultad);
+  const hasFilters = Boolean(appliedQuery || estilo || dificultad || sede || perfil);
 
   return (
     <div className="container">
       <section className="hero-section">
         <div className="hero-top">
           <div>
-            <div className="eyebrow">Matrícula con más claridad · UTP Lima Centro</div>
+            <div className="eyebrow">Matrícula con más claridad · UTP</div>
             <h1 className="hero-title">Encuentra al docente ideal para ti</h1>
             <p className="hero-subtitle">
-              Opiniones honestas y evaluaciones estructuradas de estudiantes de UTP Lima Centro,
-              Edificio Arequipa.
+              Opiniones honestas y evaluaciones estructuradas de estudiantes UTP en Lima Centro,
+              Lima Norte y Arequipa.
             </p>
           </div>
           <span className="pill-verified" style={{ padding: '10px 16px', fontSize: 13.5 }}>
@@ -137,11 +159,59 @@ export function HomePage() {
             );
           })}
 
-          <span className="pill-verified" style={{ marginLeft: 'auto' }}>
+          <div
+            style={{
+              marginLeft: 'auto',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              background: 'var(--bg-sage)',
+              color: 'var(--brand-green-ink)',
+              padding: '5px 12px',
+              borderRadius: 'var(--radius-pill)',
+              fontSize: 12,
+              fontWeight: 600,
+            }}
+          >
             <MapPin size={14} />
-            <span>Lima Centro</span>
-          </span>
+            <select
+              aria-label="Filtrar por sede"
+              value={sede}
+              onChange={(e) => setSede(e.target.value)}
+              style={{
+                border: 'none',
+                background: 'transparent',
+                color: 'inherit',
+                fontWeight: 600,
+                fontSize: 12,
+                outline: 'none',
+                cursor: 'pointer',
+              }}
+            >
+              {SEDES.map((s) => (
+                <option key={s.label} value={s.value}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
+
+        {perfil && (
+          <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span className="pill-verified">Perfil ML activo: {perfil}</span>
+            <button
+              type="button"
+              className="btn btn-outline btn-sm"
+              onClick={() => {
+                setPerfil('');
+                setSearchParams({});
+              }}
+            >
+              Quitar perfil
+            </button>
+          </div>
+        )}
       </section>
 
       <section className="two-col">
@@ -154,7 +224,7 @@ export function HomePage() {
                   ? 'Buscando docentes verificados...'
                   : `${docentes.length} ${
                       docentes.length === 1 ? 'coincidencia' : 'coincidencias'
-                    } en UTP Lima Centro`}
+                    } en UTP`}
               </p>
             </div>
 
@@ -258,9 +328,23 @@ export function HomePage() {
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <CheckCircle2 size={17} color="#047857" />
-                <span>Moderación anti-spam activa</span>
+                <span>Detección anti-spam con DBSCAN</span>
               </div>
             </div>
+          </div>
+
+          <div className="card card-pad" style={{ background: '#f0f6fc', borderColor: '#d0e2f5' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+              <PieChart size={18} color="#2b5c8f" />
+              <h3 style={{ fontSize: 16, fontWeight: 700 }}>Estadísticas y Perfiles UTP</h3>
+            </div>
+            <p style={{ margin: '0 0 14px', fontSize: 13, color: 'var(--ink-secondary)' }}>
+              Explora los 4 perfiles docentes, carga de estudio semanal por curso y tendencias
+              reales de la comunidad.
+            </p>
+            <Link to="/estadisticas" className="btn btn-primary btn-sm" style={{ width: '100%' }}>
+              Ver estadísticas académicas
+            </Link>
           </div>
 
           <div className="card card-pad" style={{ background: 'var(--bg-sage)', borderColor: '#d7e5dd' }}>

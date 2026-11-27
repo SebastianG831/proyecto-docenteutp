@@ -9,6 +9,7 @@
     "start": "node src/server.js",
     "demo": "node src/demo.js",
     "db:init": "node src/db/init.js",
+    "ml:run": "bash -c 'exec \"$(cd ../docenteutp-ml && pwd)/.venv/bin/python\" ../docenteutp-ml/run_clustering.py'",
     "test": "node --test tests/api.test.js"
   },
   "dependencies": {

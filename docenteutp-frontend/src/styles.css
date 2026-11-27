@@ -344,6 +344,100 @@ textarea {
   color: var(--danger);
 }
 
+.status-MARCADA_ANOMALIA {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
+/* Statistics Page */
+.stats-profile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+}
+
+.stats-profile-card {
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.stats-profile-card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.stats-mini-metrics {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  margin-top: auto;
+}
+
+.stats-mini-metrics > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stats-mini-label {
+  font-size: 11px;
+  color: var(--ink-muted);
+}
+
+.stats-teacher-chips {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+  gap: 10px;
+}
+
+.stats-teacher-pill {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  background: var(--bg-canvas);
+  border: 1px solid var(--border);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.stats-teacher-pill:hover {
+  border-color: var(--brand-blue);
+  background: #ffffff;
+}
+
+.scatter-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  gap: 20px;
+  align-items: stretch;
+}
+
+.scatter-svg-wrap {
+  background: var(--bg-canvas);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 12px;
+}
+
+.scatter-sidebar {
+  background: var(--bg-canvas);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+}
+
+.stats-two-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
 /* Avatar */
 .avatar {
   border-radius: var(--radius-lg);
@@ -951,7 +1045,9 @@ textarea {
 }
 
 @media (max-width: 960px) {
-  .two-col {
+  .two-col,
+  .scatter-layout,
+  .stats-two-grid {
     grid-template-columns: 1fr;
   }
 

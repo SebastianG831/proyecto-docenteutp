@@ -5,6 +5,7 @@ import {
   LogOut,
   ShieldCheck,
   BarChart3,
+  PieChart,
   UserCheck,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -19,6 +20,8 @@ export function Navbar() {
     navigate('/');
   };
 
+  const isStaff = user?.rol === 'ADMIN' || user?.rol === 'MODERADOR';
+
   return (
     <header className="navbar">
       <div className="navbar-inner">
@@ -28,7 +31,7 @@ export function Navbar() {
           </div>
           <div>
             <div className="brand-name">DocenteUTP</div>
-            <div className="brand-sub">UTP Lima Centro · Edificio Arequipa</div>
+            <div className="brand-sub">Lima Centro · Lima Norte · Arequipa</div>
           </div>
         </Link>
 
@@ -43,6 +46,14 @@ export function Navbar() {
             Comparar cursos
           </NavLink>
           <NavLink
+            to="/estadisticas"
+            className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+          >
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+              <PieChart size={15} /> Estadísticas
+            </span>
+          </NavLink>
+          <NavLink
             to="/mis-resenas"
             className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
           >
@@ -54,7 +65,7 @@ export function Navbar() {
           >
             Cómo funciona
           </NavLink>
-          {user?.rol === 'ADMIN' && (
+          {isStaff && (
             <NavLink
               to="/admin"
               className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
@@ -81,7 +92,13 @@ export function Navbar() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span className="pill-verified" title={user.correo}>
                 <ShieldCheck size={15} />
-                <span>{user.rol === 'ADMIN' ? 'Coordinación' : 'Estudiante UTP'}</span>
+                <span>
+                  {user.rol === 'ADMIN'
+                    ? 'Coordinación'
+                    : user.rol === 'MODERADOR'
+                    ? 'Moderación'
+                    : 'Estudiante UTP'}
+                </span>
               </span>
               <div className="avatar avatar-sm avatar-sage" title={user.nombre}>
                 {getInitials(user.nombre)}

@@ -4,6 +4,7 @@ import * as resenaService from '../services/resenaService.js';
 import * as reporteService from '../services/reporteService.js';
 import * as docenteService from '../services/docenteService.js';
 import * as authService from '../services/authService.js';
+import * as estadisticasService from '../services/estadisticasService.js';
 
 const router = Router();
 
@@ -18,7 +19,8 @@ router.get(
 router.put(
   '/resenas/:id/aprobar',
   asyncHandler(async (req, res) => {
-    await resenaService.cambiarEstado(req.params.id, true);
+    const { adminId = null } = req.body || {};
+    await resenaService.cambiarEstado(req.params.id, true, { adminId });
     res.json({ mensaje: 'Reseña aprobada' });
   })
 );
@@ -26,7 +28,8 @@ router.put(
 router.put(
   '/resenas/:id/rechazar',
   asyncHandler(async (req, res) => {
-    await resenaService.cambiarEstado(req.params.id, false);
+    const { adminId = null, motivo = null } = req.body || {};
+    await resenaService.cambiarEstado(req.params.id, false, { adminId, motivo });
     res.json({ mensaje: 'Reseña rechazada' });
   })
 );
@@ -60,6 +63,23 @@ router.get(
   asyncHandler(async (_req, res) => {
     const result = await authService.listarUsuariosAdmin();
     res.json(result);
+  })
+);
+
+router.get(
+  '/moderacion/historial',
+  asyncHandler(async (req, res) => {
+    const result = await estadisticasService.obtenerHistorialModeracion(req.query.limit);
+    res.json(result);
+  })
+);
+
+router.post(
+  '/ml/recalcular',
+  asyncHandler(async (req, res) => {
+    const { adminId = null } = req.body || {};
+    const result = await estadisticasService.recalcularClustering(adminId);
+    res.json({ mensaje: 'Modelos K-Means, Mean Shift y DBSCAN actualizados', resumen: result });
   })
 );
 

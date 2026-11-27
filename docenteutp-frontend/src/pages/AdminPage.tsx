@@ -1,22 +1,33 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import {
+  AlertTriangle,
   BarChart3,
   Check,
   Clock,
+  History,
   Plus,
+  RefreshCw,
   ShieldAlert,
+  Sparkles,
   Star,
   Users,
   X,
 } from 'lucide-react';
-import { adminApi, cursosApi } from '../services/api';
-import type { Curso, ReporteDocente, Resena, UsuarioAdmin } from '../types/api';
+import { adminApi, cursosApi, estadisticasApi } from '../services/api';
+import type {
+  Curso,
+  EstadisticasResponse,
+  ModeracionHistorialItem,
+  ReporteDocente,
+  Resena,
+  UsuarioAdmin,
+} from '../types/api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { formatRelativeDate } from '../utils/formatters';
 
-type AdminTab = 'reportes' | 'moderacion' | 'gestion';
+type AdminTab = 'reportes' | 'moderacion' | 'alertas' | 'gestion';
 
 export function AdminPage() {
   const { user } = useAuth();
@@ -27,29 +38,42 @@ export function AdminPage() {
   const [pendientes, setPendientes] = useState<Resena[]>([]);
   const [usuarios, setUsuarios] = useState<UsuarioAdmin[]>([]);
   const [cursos, setCursos] = useState<Curso[]>([]);
+  const [estadisticas, setEstadisticas] = useState<EstadisticasResponse | null>(null);
+  const [historial, setHistorial] = useState<ModeracionHistorialItem[]>([]);
+  const [onlyMlAlerts, setOnlyMlAlerts] = useState(false);
+  const [rejectReasons, setRejectReasons] = useState<Record<number, string>>({});
+  const [recalculating, setRecalculating] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const [nombre, setNombre] = useState('');
   const [facultad, setFacultad] = useState('Facultad de Ingeniería · Ingeniería de Sistemas');
+  const [sede, setSede] = useState('UTP Lima Centro · Edificio Arequipa');
+  const [modalidadPrincipal, setModalidadPrincipal] = useState('PRESENCIAL');
   const [estiloEnsenanza, setEstiloEnsenanza] = useState('Explicación clara');
   const [estiloEvaluacion, setEstiloEvaluacion] = useState('Prácticas y exámenes');
   const [resumen, setResumen] = useState('');
   const [etiquetas, setEtiquetas] = useState('Metodología clara,Práctica semanal');
   const [cursoId, setCursoId] = useState<number>(1);
 
+  const isStaff = user?.rol === 'ADMIN' || user?.rol === 'MODERADOR';
+
   const loadAll = useCallback(async () => {
     setLoading(true);
     try {
-      const [rep, pend, users, cur] = await Promise.all([
+      const [rep, pend, users, cur, est, hist] = await Promise.all([
         adminApi.reporteDocentes(),
         adminApi.pendientes(),
         adminApi.usuarios(),
         cursosApi.listar(),
+        estadisticasApi.obtener(),
+        adminApi.historialModeracion(),
       ]);
       setReportes(rep);
       setPendientes(pend);
       setUsuarios(users);
       setCursos(cur);
+      setEstadisticas(est);
+      setHistorial(hist);
       if (cur.length > 0) setCursoId(cur[0].id);
     } catch (err) {
       showToast((err as Error).message, 'error');
@@ -59,18 +83,34 @@ export function AdminPage() {
   }, [showToast]);
 
   useEffect(() => {
-    if (user?.rol === 'ADMIN') loadAll();
+    if (isStaff) loadAll();
     else setLoading(false);
-  }, [user?.rol, loadAll]);
+  }, [isStaff, loadAll]);
 
   const handleModerate = async (id: number, aprobar: boolean) => {
     try {
-      if (aprobar) await adminApi.aprobar(id);
-      else await adminApi.rechazar(id);
+      if (aprobar) {
+        await adminApi.aprobar(id, user?.id);
+      } else {
+        await adminApi.rechazar(id, user?.id, rejectReasons[id]);
+      }
       showToast(aprobar ? 'Reseña aprobada y publicada' : 'Reseña rechazada', 'success');
       await loadAll();
     } catch (err) {
       showToast((err as Error).message, 'error');
+    }
+  };
+
+  const handleRecalculateMl = async () => {
+    setRecalculating(true);
+    try {
+      await adminApi.recalcularMl(user?.id);
+      showToast('Modelos K-Means, Mean Shift y DBSCAN recalculados con datos actuales', 'success');
+      await loadAll();
+    } catch (err) {
+      showToast((err as Error).message, 'error');
+    } finally {
+      setRecalculating(false);
     }
   };
 
@@ -80,6 +120,8 @@ export function AdminPage() {
       await adminApi.crearDocente({
         nombre,
         facultad,
+        sede,
+        modalidadPrincipal,
         estiloEnsenanza,
         estiloEvaluacion,
         resumen,
@@ -95,7 +137,7 @@ export function AdminPage() {
     }
   };
 
-  if (!user || user.rol !== 'ADMIN') {
+  if (!isStaff) {
     return (
       <div className="container" style={{ padding: '48px 24px' }}>
         <div className="card card-pad" style={{ textAlign: 'center', padding: 40 }}>
@@ -118,15 +160,17 @@ export function AdminPage() {
     reportes.length > 0
       ? reportes.reduce((acc, r) => acc + r.promedioGeneral, 0) / reportes.length
       : 0;
+  const mlAlertsCount = pendientes.filter((r) => r.esAnomaliaMl).length;
+  const filteredPendientes = onlyMlAlerts ? pendientes.filter((r) => r.esAnomaliaMl) : pendientes;
 
   return (
     <div className="container" style={{ padding: '36px 24px 56px' }}>
       <div className="section-header" style={{ marginBottom: 22 }}>
         <div>
-          <div className="eyebrow">Licencia Institucional B2B · UTP Lima Centro</div>
+          <div className="eyebrow">Licencia Institucional B2B · UTP</div>
           <h1 style={{ fontSize: 30, fontWeight: 700 }}>Panel de Analítica y Moderación</h1>
         </div>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
           <button
             type="button"
             className={`filter-chip ${tab === 'reportes' ? 'active' : ''}`}
@@ -140,6 +184,13 @@ export function AdminPage() {
             onClick={() => setTab('moderacion')}
           >
             Cola de Moderación ({pendientes.length})
+          </button>
+          <button
+            type="button"
+            className={`filter-chip ${tab === 'alertas' ? 'active' : ''}`}
+            onClick={() => setTab('alertas')}
+          >
+            Alertas ML y Auditoría ({(estadisticas?.alertasCalidad.docentesAtipicos.length || 0) + mlAlertsCount})
           </button>
           <button
             type="button"
@@ -168,7 +219,7 @@ export function AdminPage() {
         </div>
         <div className="card card-pad">
           <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--ink-muted)' }}>
-            <span>Pendientes de revisión</span>
+            <span>Pendientes ({mlAlertsCount} sospecha ML)</span>
             <Clock size={18} color="#d97706" />
           </div>
           <div style={{ fontSize: 28, fontWeight: 700, marginTop: 8 }}>{pendientes.length}</div>
@@ -186,21 +237,40 @@ export function AdminPage() {
         <div className="card card-pad">Cargando datos institucionales...</div>
       ) : tab === 'reportes' ? (
         <div className="card">
-          <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--border)' }}>
-            <h2 style={{ fontSize: 18, fontWeight: 700 }}>Ranking y Métricas por Docente</h2>
+          <div
+            style={{
+              padding: '18px 22px',
+              borderBottom: '1px solid var(--border)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: 10,
+            }}
+          >
+            <div>
+              <h2 style={{ fontSize: 18, fontWeight: 700 }}>Ranking y Métricas por Docente</h2>
+              <div style={{ fontSize: 12.5, color: 'var(--ink-muted)' }}>
+                Incluye perfil K-Means, carga de estudio semanal, recomendación y alertas DBSCAN.
+              </div>
+            </div>
+            <Link to="/estadisticas" className="btn btn-outline btn-sm">
+              <Sparkles size={14} />
+              <span>Ver sitio de estadísticas</span>
+            </Link>
           </div>
           <div className="table-wrap">
             <table className="data-table">
               <thead>
                 <tr>
                   <th>Docente</th>
-                  <th>Facultad</th>
+                  <th>Facultad / Sede</th>
+                  <th>Perfil ML</th>
                   <th>General</th>
-                  <th>Dominio</th>
-                  <th>Claridad</th>
-                  <th>Empatía</th>
-                  <th>Aprobadas</th>
-                  <th>Pendientes</th>
+                  <th>Carga</th>
+                  <th>Recom.</th>
+                  <th>Aprob.</th>
+                  <th>Pend.</th>
                 </tr>
               </thead>
               <tbody>
@@ -213,14 +283,33 @@ export function AdminPage() {
                       >
                         {r.docenteNombre}
                       </Link>
+                      {r.esOutlierMl && (
+                        <span
+                          className="status-badge status-RECHAZADA"
+                          style={{ marginLeft: 8, fontSize: 11, padding: '2px 7px' }}
+                        >
+                          Atípico
+                        </span>
+                      )}
                     </td>
-                    <td style={{ color: 'var(--ink-muted)' }}>{r.facultad}</td>
+                    <td style={{ color: 'var(--ink-muted)', fontSize: 12.5 }}>
+                      <div>{r.facultad}</div>
+                      {r.sede && <div>{r.sede.split('·')[0].trim()}</div>}
+                    </td>
+                    <td>
+                      {r.perfilMl ? (
+                        <span className="pill-tag" style={{ fontSize: 11.5 }}>
+                          {r.perfilMl}
+                        </span>
+                      ) : (
+                        <span style={{ color: 'var(--ink-muted)' }}>—</span>
+                      )}
+                    </td>
                     <td>
                       <span className="rating-chip">{r.promedioGeneral.toFixed(1)}</span>
                     </td>
-                    <td>{r.promedioDominio.toFixed(1)}</td>
-                    <td>{r.promedioClaridad.toFixed(1)}</td>
-                    <td>{r.promedioEmpatia.toFixed(1)}</td>
+                    <td>{r.avgHorasEstudio != null ? `${r.avgHorasEstudio} h/s` : '—'}</td>
+                    <td>{r.tasaRecomendacion != null ? `${r.tasaRecomendacion}%` : '—'}</td>
                     <td>{r.totalResenas}</td>
                     <td>
                       {r.resenasPendientes > 0 ? (
@@ -237,18 +326,53 @@ export function AdminPage() {
         </div>
       ) : tab === 'moderacion' ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {pendientes.length === 0 ? (
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              className={`filter-chip ${!onlyMlAlerts ? 'active' : ''}`}
+              onClick={() => setOnlyMlAlerts(false)}
+            >
+              Todas las pendientes ({pendientes.length})
+            </button>
+            <button
+              type="button"
+              className={`filter-chip ${onlyMlAlerts ? 'active-sage' : ''}`}
+              onClick={() => setOnlyMlAlerts(true)}
+            >
+              Solo alertas de spam DBSCAN ({mlAlertsCount})
+            </button>
+          </div>
+
+          {filteredPendientes.length === 0 ? (
             <div className="card card-pad" style={{ textAlign: 'center', padding: 36 }}>
-              No hay reseñas pendientes en la cola de moderación.
+              No hay reseñas pendientes en esta vista de moderación.
             </div>
           ) : (
-            pendientes.map((r) => (
-              <div key={r.id} className="card review-card">
+            filteredPendientes.map((r) => (
+              <div
+                key={r.id}
+                className="card review-card"
+                style={r.esAnomaliaMl ? { borderColor: '#fca5a5', background: '#fffafa' } : undefined}
+              >
                 <div className="review-top">
                   <div>
-                    <strong style={{ fontSize: 16 }}>{r.docenteNombre}</strong>
-                    <div style={{ fontSize: 13, color: 'var(--ink-muted)' }}>
-                      {r.cursoNombre} · Enviada {formatRelativeDate(r.fecha)}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      <strong style={{ fontSize: 16 }}>{r.docenteNombre}</strong>
+                      {r.esAnomaliaMl && (
+                        <span className="status-badge status-RECHAZADA" style={{ gap: 4 }}>
+                          <AlertTriangle size={13} />
+                          <span>Sospecha de spam / anomalía ML</span>
+                        </span>
+                      )}
+                      {Number(r.totalReportes || 0) > 0 && (
+                        <span className="status-badge status-PENDIENTE">
+                          {r.totalReportes} reportes
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: 13, color: 'var(--ink-muted)', marginTop: 2 }}>
+                      {r.cursoNombre} {r.periodoCodigo ? `(${r.periodoCodigo})` : ''} · Enviada{' '}
+                      {formatRelativeDate(r.fecha)}
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: 8 }}>
@@ -272,12 +396,132 @@ export function AdminPage() {
                 </div>
                 <div style={{ fontSize: 13, color: 'var(--ink-muted)', marginBottom: 8 }}>
                   Dominio {r.dominio}/5 · Claridad {r.claridad}/5 · Empatía {r.empatia}/5 · Dificultad{' '}
-                  <strong>{r.dificultad}</strong>
+                  <strong>{r.dificultad}</strong> · Carga{' '}
+                  <strong>{r.horasEstudioSemanal ?? 4} h/sem</strong>
                 </div>
-                <p style={{ margin: 0 }}>{r.comentario}</p>
+                <p style={{ margin: '0 0 10px' }}>{r.comentario}</p>
+                <input
+                  type="text"
+                  className="form-control"
+                  style={{ maxWidth: 460, padding: '7px 12px', fontSize: 12.5 }}
+                  placeholder="Motivo opcional si rechazas (se registra en historial de auditoría)..."
+                  value={rejectReasons[r.id] || ''}
+                  onChange={(e) =>
+                    setRejectReasons((prev) => ({ ...prev, [r.id]: e.target.value }))
+                  }
+                />
               </div>
             ))
           )}
+        </div>
+      ) : tab === 'alertas' ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <div className="card card-pad">
+            <div className="section-header" style={{ marginBottom: 14 }}>
+              <div>
+                <h2 style={{ fontSize: 18, fontWeight: 700 }}>
+                  Motor de Segmentación y Anomalías (K-Means + Mean Shift + DBSCAN)
+                </h2>
+                <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--ink-muted)' }}>
+                  Recalcula los perfiles docentes, estudiantiles y detección de reseñas spam con los
+                  datos más recientes de PostgreSQL.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={handleRecalculateMl}
+                disabled={recalculating}
+              >
+                <RefreshCw size={15} />
+                <span>{recalculating ? 'Recalculando...' : 'Recalcular modelos ML'}</span>
+              </button>
+            </div>
+
+            {estadisticas && (
+              <div className="compare-grid">
+                {estadisticas.alertasCalidad.docentesAtipicos.map((d) => (
+                  <div
+                    key={d.docenteId}
+                    style={{
+                      padding: 14,
+                      borderRadius: 'var(--radius-md)',
+                      background: 'var(--bg-canvas)',
+                      border: '1px solid #fecaca',
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <Link
+                        to={`/docentes/${d.docenteId}`}
+                        style={{ fontWeight: 700, color: 'var(--brand-blue)' }}
+                      >
+                        {d.docenteNombre}
+                      </Link>
+                      <span className="rating-chip">{d.calificacion.toFixed(1)}★</span>
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--ink-muted)', marginBottom: 8 }}>
+                      {d.facultad}
+                    </div>
+                    {d.razones.map((razon) => (
+                      <div key={razon} style={{ fontSize: 12.5, color: '#b45309', marginBottom: 4 }}>
+                        • {razon}
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="card">
+            <div
+              style={{
+                padding: '18px 22px',
+                borderBottom: '1px solid var(--border)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+              }}
+            >
+              <History size={18} color="#2b5c8f" />
+              <h2 style={{ fontSize: 18, fontWeight: 700 }}>Auditoría de Moderación</h2>
+            </div>
+            <div className="table-wrap">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Reseña</th>
+                    <th>Docente</th>
+                    <th>Cambio de estado</th>
+                    <th>Moderador</th>
+                    <th>Observación</th>
+                    <th>Fecha</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {historial.map((h) => (
+                    <tr key={h.id}>
+                      <td>#{h.resenaId}</td>
+                      <td>
+                        <strong>{h.docenteNombre}</strong>
+                      </td>
+                      <td>
+                        <span className="status-badge status-PENDIENTE">{h.estadoAnterior}</span> →{' '}
+                        <span className={`status-badge status-${h.estadoNuevo}`}>{h.estadoNuevo}</span>
+                      </td>
+                      <td>{h.adminNombre}</td>
+                      <td style={{ color: 'var(--ink-muted)', fontSize: 12.5 }}>
+                        {h.observacion || '—'}
+                      </td>
+                      <td style={{ color: 'var(--ink-muted)', fontSize: 12.5 }}>
+                        {formatRelativeDate(h.creadoEn)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       ) : (
         <div className="two-col" style={{ paddingBottom: 0 }}>
@@ -339,6 +583,30 @@ export function AdminPage() {
                   onChange={(e) => setFacultad(e.target.value)}
                   required
                 />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Sede UTP</label>
+                <select
+                  className="form-control"
+                  value={sede}
+                  onChange={(e) => setSede(e.target.value)}
+                >
+                  <option value="UTP Lima Centro · Edificio Arequipa">UTP Lima Centro · Edificio Arequipa</option>
+                  <option value="UTP Lima Norte · Panamericana Norte">UTP Lima Norte · Panamericana Norte</option>
+                  <option value="UTP Arequipa · Av. Parra">UTP Arequipa · Av. Parra</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Modalidad principal</label>
+                <select
+                  className="form-control"
+                  value={modalidadPrincipal}
+                  onChange={(e) => setModalidadPrincipal(e.target.value)}
+                >
+                  <option value="PRESENCIAL">Presencial</option>
+                  <option value="SEMIPRESENCIAL">Semipresencial</option>
+                  <option value="VIRTUAL">Virtual</option>
+                </select>
               </div>
               <div className="form-group">
                 <label className="form-label">Curso principal</label>

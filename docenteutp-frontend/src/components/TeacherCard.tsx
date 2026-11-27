@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, BadgeCheck, Bookmark, Star } from 'lucide-react';
+import { ArrowRight, BadgeCheck, Bookmark, Clock, Star, ThumbsUp } from 'lucide-react';
 import type { Docente } from '../types/api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -50,9 +50,15 @@ export function TeacherCard({ docente, variantIndex = 0 }: TeacherCardProps) {
                 <span>Verificado</span>
               </span>
             )}
+            {docente.perfilMl && (
+              <span className="pill-tag" style={{ padding: '2px 9px', fontSize: 11 }}>
+                {docente.perfilMl}
+              </span>
+            )}
           </div>
           <div className="teacher-sub">
             {docente.facultad} · <strong>{docente.cursoPrincipal}</strong>
+            {docente.sede ? ` · ${docente.sede.split('·')[0].trim()}` : ''}
           </div>
           <div className="teacher-metrics">
             <span className="rating-chip">
@@ -66,6 +72,16 @@ export function TeacherCard({ docente, variantIndex = 0 }: TeacherCardProps) {
             {docente.nivelDificultad && docente.nivelDificultad !== 'Sin datos' && (
               <span className={getDifficultyBadgeClass(docente.nivelDificultad)}>
                 Nivel {docente.nivelDificultad}
+              </span>
+            )}
+            {docente.avgHorasEstudio != null && docente.avgHorasEstudio > 0 && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--ink-muted)' }}>
+                <Clock size={12} /> {docente.avgHorasEstudio} h/s
+              </span>
+            )}
+            {docente.tasaRecomendacion != null && docente.totalResenas > 0 && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, color: '#065f46', fontWeight: 600 }}>
+                <ThumbsUp size={12} /> {docente.tasaRecomendacion}%
               </span>
             )}
           </div>

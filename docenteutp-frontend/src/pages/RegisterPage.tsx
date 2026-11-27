@@ -8,11 +8,8 @@ const CARRERAS = [
   'Ingeniería de Software',
   'Ingeniería de Sistemas',
   'Ingeniería Industrial',
-  'Informática',
-  'Ingeniería Mecatrónica',
-  'Ingeniería Electrónica',
-  'Ingeniería Biomédica',
-  'Ingeniería Aeronáutica',
+  'Ingeniería Civil',
+  'Administración de Empresas',
   'Psicología',
 ];
 

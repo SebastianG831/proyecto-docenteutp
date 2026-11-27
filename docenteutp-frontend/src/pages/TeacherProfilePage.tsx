@@ -1,14 +1,17 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
+  AlertTriangle,
   BadgeCheck,
   Bookmark,
   ChevronRight,
+  Clock,
   MapPin,
   Plus,
   ShieldCheck,
   Sparkles,
   Star,
+  ThumbsUp,
 } from 'lucide-react';
 import { docentesApi, resenasApi } from '../services/api';
 import type { DocenteDetalle, Resena } from '../types/api';
@@ -78,6 +81,23 @@ export function TeacherProfilePage() {
     }
   };
 
+  const handleVoteUseful = async (resenaId: number) => {
+    if (!user) {
+      showToast('Inicia sesión para valorar reseñas útiles', 'info');
+      navigate('/login');
+      return;
+    }
+    try {
+      const result = await resenasApi.votarUtil(resenaId, user.id, true);
+      setResenas((prev) =>
+        prev.map((r) => (r.id === resenaId ? { ...r, votosUtiles: result.votosUtiles } : r))
+      );
+      showToast('¡Gracias! Tu voto ayuda a destacar reseñas útiles', 'success');
+    } catch (err) {
+      showToast((err as Error).message, 'error');
+    }
+  };
+
   if (loading) {
     return (
       <div className="container" style={{ padding: '48px 24px' }}>
@@ -125,6 +145,9 @@ export function TeacherProfilePage() {
                   <span>Identidad institucional verificada</span>
                 </span>
               )}
+              {detalle.perfilMl && (
+                <span className="pill-verified">{detalle.perfilMl}</span>
+              )}
             </div>
             <div style={{ fontSize: 15, color: 'var(--ink-muted)', marginTop: 4 }}>
               {detalle.facultad}
@@ -133,14 +156,23 @@ export function TeacherProfilePage() {
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: 6,
+                gap: 10,
                 fontSize: 13,
                 color: 'var(--ink-muted)',
                 marginTop: 4,
+                flexWrap: 'wrap',
               }}
             >
-              <MapPin size={14} />
-              <span>{detalle.sede}</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                <MapPin size={14} />
+                <span>{detalle.sede}</span>
+              </span>
+              {detalle.modalidadPrincipal && (
+                <span>· Modalidad {detalle.modalidadPrincipal.toLowerCase()}</span>
+              )}
+              {detalle.aniosExperiencia != null && (
+                <span>· {detalle.aniosExperiencia} años en UTP</span>
+              )}
             </div>
           </div>
         </div>
@@ -193,7 +225,34 @@ export function TeacherProfilePage() {
                 <CriteriaBar key={c.nombre} label={c.nombre} value={c.promedio} />
               ))}
             </div>
+            {detalle.criteriosExtendidos && detalle.criteriosExtendidos.some((c) => c.promedio > 0) && (
+              <>
+                <div className="divider" />
+                <div className="criteria-list">
+                  {detalle.criteriosExtendidos.map((c) => (
+                    <CriteriaBar key={c.nombre} label={c.nombre} value={c.promedio} />
+                  ))}
+                </div>
+              </>
+            )}
           </div>
+
+          {detalle.esOutlierMl && (
+            <div
+              className="card card-pad"
+              style={{ background: '#fffbeb', borderColor: '#fde68a', display: 'flex', gap: 12 }}
+            >
+              <AlertTriangle size={20} color="#b45309" style={{ flexShrink: 0, marginTop: 2 }} />
+              <div style={{ fontSize: 13.5, color: '#92400e' }}>
+                <strong>Perfil con comportamiento estadístico atípico:</strong>{' '}
+                {detalle.indicePolarizacion != null && detalle.indicePolarizacion >= 1.5
+                  ? 'las opiniones de los estudiantes se encuentran fuertemente divididas entre experiencias muy positivas y negativas.'
+                  : detalle.avgHorasEstudio != null && detalle.avgHorasEstudio >= 18
+                  ? `reporta una carga semanal excepcionalmente alta (~${detalle.avgHorasEstudio} h/semana).`
+                  : 'presenta métricas inusuales en moderación o guardados respecto al promedio UTP.'}
+              </div>
+            </div>
+          )}
 
           <div className="summary-box">
             <div className="summary-icon">
@@ -201,10 +260,15 @@ export function TeacherProfilePage() {
             </div>
             <div>
               <h2 style={{ fontSize: 17, fontWeight: 700, marginBottom: 6 }}>En pocas palabras</h2>
-              <p style={{ margin: '0 0 12px', color: 'var(--ink-primary)' }}>
+              <p style={{ margin: '0 0 10px', color: 'var(--ink-primary)' }}>
                 {detalle.resumen ||
                   'Las reseñas verificadas destacan la claridad de su metodología y estructura del curso.'}
               </p>
+              {detalle.perfilMlDesc && (
+                <p style={{ margin: '0 0 12px', fontSize: 12.5, color: 'var(--ink-secondary)' }}>
+                  <strong>Perfil estadístico ({detalle.perfilMl}):</strong> {detalle.perfilMlDesc}
+                </p>
+              )}
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 {detalle.etiquetas.map((tag) => (
                   <span key={tag} className="pill-tag pill-tag-white">
@@ -247,6 +311,11 @@ export function TeacherProfilePage() {
                             <span className="pill-verified" style={{ padding: '2px 8px', fontSize: 11 }}>
                               Correo institucional
                             </span>
+                            {r.periodoCodigo && (
+                              <span style={{ fontSize: 11.5, color: 'var(--ink-muted)' }}>
+                                · Ciclo {r.periodoCodigo}
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -278,17 +347,42 @@ export function TeacherProfilePage() {
                       {r.comentario}
                     </p>
 
-                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                      <span className={getDifficultyBadgeClass(r.dificultad)}>
-                        Dificultad: {r.dificultad.charAt(0) + r.dificultad.slice(1).toLowerCase()}
-                      </span>
-                      <span className="pill-tag">Dominio {r.dominio}/5</span>
-                      <span className="pill-tag" style={{ background: 'var(--bg-muted)' }}>
-                        Claridad {r.claridad}/5
-                      </span>
-                      <span className="pill-tag" style={{ background: 'var(--bg-muted)' }}>
-                        Empatía {r.empatia}/5
-                      </span>
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        gap: 8,
+                        flexWrap: 'wrap',
+                      }}
+                    >
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        <span className={getDifficultyBadgeClass(r.dificultad)}>
+                          Dificultad: {r.dificultad.charAt(0) + r.dificultad.slice(1).toLowerCase()}
+                        </span>
+                        <span className="pill-tag">Dominio {r.dominio}/5</span>
+                        <span className="pill-tag" style={{ background: 'var(--bg-muted)' }}>
+                          Claridad {r.claridad}/5
+                        </span>
+                        <span className="pill-tag" style={{ background: 'var(--bg-muted)' }}>
+                          Empatía {r.empatia}/5
+                        </span>
+                        {r.horasEstudioSemanal != null && (
+                          <span className="pill-tag" style={{ background: 'var(--bg-muted)' }}>
+                            {r.horasEstudioSemanal} h/sem
+                          </span>
+                        )}
+                      </div>
+
+                      <button
+                        type="button"
+                        className="btn btn-outline btn-sm"
+                        onClick={() => handleVoteUseful(r.id)}
+                        title="Marcar reseña como útil"
+                      >
+                        <ThumbsUp size={13} />
+                        <span>Útil ({r.votosUtiles || 0})</span>
+                      </button>
                     </div>
                   </article>
                 ))}
@@ -297,48 +391,75 @@ export function TeacherProfilePage() {
           </div>
         </div>
 
-        <aside className="card card-pad">
-          <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12 }}>Información del curso</h3>
+        <aside style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div className="card card-pad">
+            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12 }}>Información del curso</h3>
 
-          <div style={{ marginBottom: 10 }}>
-            <div style={{ fontSize: 12, color: 'var(--ink-muted)', marginBottom: 6 }}>
-              Cursos con reseñas
+            <div style={{ marginBottom: 10 }}>
+              <div style={{ fontSize: 12, color: 'var(--ink-muted)', marginBottom: 6 }}>
+                Cursos asignados
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {detalle.cursos.map((c) => (
+                  <div key={c.id} style={{ fontWeight: 600, fontSize: 13.5 }}>
+                    {c.codigo} · {c.nombre}
+                  </div>
+                ))}
+              </div>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {detalle.cursos.map((c) => (
-                <div key={c.id} style={{ fontWeight: 600, fontSize: 13.5 }}>
-                  {c.codigo} · {c.nombre}
-                </div>
-              ))}
+
+            <div className="divider" />
+
+            <div className="info-kv">
+              <span style={{ color: 'var(--ink-muted)', fontSize: 13 }}>Nivel de dificultad</span>
+              <span className={getDifficultyBadgeClass(detalle.nivelDificultad)}>
+                {detalle.nivelDificultad}
+              </span>
             </div>
-          </div>
 
-          <div className="divider" />
+            <div className="info-kv">
+              <span style={{ color: 'var(--ink-muted)', fontSize: 13 }}>Estilo de enseñanza</span>
+              <span style={{ fontWeight: 600, fontSize: 13 }}>{detalle.estiloEnsenanza}</span>
+            </div>
 
-          <div className="info-kv">
-            <span style={{ color: 'var(--ink-muted)', fontSize: 13 }}>Nivel de dificultad</span>
-            <span className={getDifficultyBadgeClass(detalle.nivelDificultad)}>
-              {detalle.nivelDificultad}
-            </span>
-          </div>
+            <div className="info-kv">
+              <span style={{ color: 'var(--ink-muted)', fontSize: 13 }}>Estilo de evaluación</span>
+              <span style={{ fontWeight: 600, fontSize: 13, textAlign: 'right' }}>
+                {detalle.estiloEvaluacion}
+              </span>
+            </div>
 
-          <div className="info-kv">
-            <span style={{ color: 'var(--ink-muted)', fontSize: 13 }}>Estilo de enseñanza</span>
-            <span style={{ fontWeight: 600, fontSize: 13 }}>{detalle.estiloEnsenanza}</span>
-          </div>
+            {detalle.tasaRecomendacion != null && detalle.totalResenas > 0 && (
+              <div className="info-kv">
+                <span style={{ color: 'var(--ink-muted)', fontSize: 13 }}>Recomendación</span>
+                <span style={{ fontWeight: 700, fontSize: 13, color: '#065f46' }}>
+                  {detalle.tasaRecomendacion}% lo recomienda
+                </span>
+              </div>
+            )}
 
-          <div className="info-kv">
-            <span style={{ color: 'var(--ink-muted)', fontSize: 13 }}>Estilo de evaluación</span>
-            <span style={{ fontWeight: 600, fontSize: 13, textAlign: 'right' }}>
-              {detalle.estiloEvaluacion}
-            </span>
-          </div>
+            {detalle.avgHorasEstudio != null && detalle.avgHorasEstudio > 0 && (
+              <div className="info-kv">
+                <span style={{ color: 'var(--ink-muted)', fontSize: 13 }}>Estudio semanal</span>
+                <span style={{ fontWeight: 600, fontSize: 13, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <Clock size={13} /> ~{detalle.avgHorasEstudio} h/sem
+                </span>
+              </div>
+            )}
 
-          <div className="trust-note" style={{ marginTop: 14 }}>
-            <ShieldCheck size={18} color="#065f46" style={{ flexShrink: 0, marginTop: 2 }} />
-            <span>
-              Las opiniones provienen de estudiantes verificados que cursaron con este docente.
-            </span>
+            {detalle.avgNotaObtenida != null && detalle.avgNotaObtenida > 0 && (
+              <div className="info-kv">
+                <span style={{ color: 'var(--ink-muted)', fontSize: 13 }}>Nota promedio reportada</span>
+                <span style={{ fontWeight: 600, fontSize: 13 }}>{detalle.avgNotaObtenida} / 20</span>
+              </div>
+            )}
+
+            <div className="trust-note" style={{ marginTop: 14 }}>
+              <ShieldCheck size={18} color="#065f46" style={{ flexShrink: 0, marginTop: 2 }} />
+              <span>
+                Las opiniones provienen de estudiantes verificados que cursaron con este docente.
+              </span>
+            </div>
           </div>
         </aside>
       </section>

@@ -6,6 +6,7 @@ import { Footer } from './components/Footer';
 import { HomePage } from './pages/HomePage';
 import { TeacherProfilePage } from './pages/TeacherProfilePage';
 import { ComparePage } from './pages/ComparePage';
+import { StatisticsPage } from './pages/StatisticsPage';
 import { MyReviewsPage } from './pages/MyReviewsPage';
 import { SavedTeachersPage } from './pages/SavedTeachersPage';
 import { HowItWorksPage } from './pages/HowItWorksPage';
@@ -25,6 +26,7 @@ export function App() {
                 <Route path="/" element={<HomePage />} />
                 <Route path="/docentes/:id" element={<TeacherProfilePage />} />
                 <Route path="/comparar" element={<ComparePage />} />
+                <Route path="/estadisticas" element={<StatisticsPage />} />
                 <Route path="/mis-resenas" element={<MyReviewsPage />} />
                 <Route path="/guardados" element={<SavedTeachersPage />} />
                 <Route path="/como-funciona" element={<HowItWorksPage />} />

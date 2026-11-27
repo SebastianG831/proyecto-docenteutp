@@ -35,12 +35,23 @@ export async function registrar({ nombre, correo, password, carrera, ciclo }) {
     throw new ApiError(409, 'Ese correo ya está registrado');
   }
 
+  const carreraRes = await query(
+    'SELECT id FROM carreras WHERE LOWER(nombre) = LOWER($1) LIMIT 1',
+    [carrera.trim()]
+  );
+  const carreraId = carreraRes.rows[0]?.id ?? null;
+
+  const sedeRes = await query(
+    "SELECT id FROM sedes WHERE codigo = 'LIM-CTR' AND activo = TRUE LIMIT 1"
+  );
+  const sedeId = sedeRes.rows[0]?.id ?? null;
+
   const hash = await bcrypt.hash(password, 10);
   const res = await query(
-    `INSERT INTO usuarios (nombre, correo, password, carrera, ciclo, rol)
-     VALUES ($1, $2, $3, $4, $5, 'ESTUDIANTE')
+    `INSERT INTO usuarios (nombre, correo, password, carrera_id, carrera, sede_id, ciclo, rol)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, 'ESTUDIANTE')
      RETURNING id, nombre, correo, carrera, ciclo, rol`,
-    [nombre.trim(), correoNorm, hash, carrera.trim(), cicloNum]
+    [nombre.trim(), correoNorm, hash, carreraId, carrera.trim(), sedeId, cicloNum]
   );
 
   return mapAuthResponse(res.rows[0]);
@@ -52,11 +63,11 @@ export async function login({ correo, password }) {
   }
   const correoNorm = correo.trim().toLowerCase();
   const res = await query(
-    'SELECT id, nombre, correo, password, carrera, ciclo, rol FROM usuarios WHERE correo = $1',
+    'SELECT id, nombre, correo, password, carrera, ciclo, rol, activo FROM usuarios WHERE correo = $1',
     [correoNorm]
   );
 
-  if (res.rows.length === 0) {
+  if (res.rows.length === 0 || res.rows[0].activo === false) {
     throw new ApiError(401, 'Correo o contraseña incorrectos');
   }
 
@@ -71,7 +82,7 @@ export async function login({ correo, password }) {
 
 export async function listarUsuariosAdmin() {
   const res = await query(
-    `SELECT u.id, u.nombre, u.correo, u.carrera, u.ciclo, u.rol, u.creado_en,
+    `SELECT u.id, u.nombre, u.correo, u.carrera, u.ciclo, u.rol, u.activo, u.creado_en,
             COUNT(r.id)::int AS total_resenas
      FROM usuarios u
      LEFT JOIN resenas r ON r.usuario_id = u.id
@@ -85,6 +96,7 @@ export async function listarUsuariosAdmin() {
     carrera: u.carrera,
     ciclo: Number(u.ciclo),
     rol: u.rol,
+    activo: Boolean(u.activo),
     creadoEn: u.creado_en,
     totalResenas: Number(u.total_resenas),
   }));

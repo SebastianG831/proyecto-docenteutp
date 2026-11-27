@@ -28,6 +28,15 @@ router.get(
   })
 );
 
+router.post(
+  '/:id/voto',
+  asyncHandler(async (req, res) => {
+    const { usuarioId, esUtil = true } = req.body || {};
+    const result = await resenaService.votarUtil(req.params.id, usuarioId, esUtil);
+    res.json(result);
+  })
+);
+
 router.delete(
   '/:id',
   asyncHandler(async (req, res) => {

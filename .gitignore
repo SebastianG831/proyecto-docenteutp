@@ -9,6 +9,10 @@ docenteutp-frontend/dist/
 docenteutp-frontend/.env
 *.tsbuildinfo
 
+# Python ML
+docenteutp-ml/.venv/
+docenteutp-ml/__pycache__/
+
 # Editor y sistema
 .idea/
 .vscode/

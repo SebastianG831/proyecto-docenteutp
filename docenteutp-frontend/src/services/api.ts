@@ -2,6 +2,8 @@ import type {
   Curso,
   Docente,
   DocenteDetalle,
+  EstadisticasResponse,
+  ModeracionHistorialItem,
   ReporteDocente,
   Resena,
   ResenaInput,
@@ -47,11 +49,24 @@ export const authApi = {
 };
 
 export const docentesApi = {
-  buscar: (params: { q?: string; estilo?: string; dificultad?: string; sort?: string } = {}) => {
+  buscar: (
+    params: {
+      q?: string;
+      estilo?: string;
+      dificultad?: string;
+      sede?: string;
+      modalidad?: string;
+      perfil?: string;
+      sort?: string;
+    } = {}
+  ) => {
     const sp = new URLSearchParams();
     if (params.q) sp.set('q', params.q);
     if (params.estilo) sp.set('estilo', params.estilo);
     if (params.dificultad) sp.set('dificultad', params.dificultad);
+    if (params.sede) sp.set('sede', params.sede);
+    if (params.modalidad) sp.set('modalidad', params.modalidad);
+    if (params.perfil) sp.set('perfil', params.perfil);
     if (params.sort) sp.set('sort', params.sort);
     const qs = sp.toString();
     return request<Docente[]>(`/docentes${qs ? `?${qs}` : ''}`);
@@ -74,6 +89,11 @@ export const resenasApi = {
     }),
   porDocente: (docenteId: number) => request<Resena[]>(`/resenas/docente/${docenteId}`),
   porUsuario: (usuarioId: number) => request<Resena[]>(`/resenas/usuario/${usuarioId}`),
+  votarUtil: (id: number, usuarioId: number, esUtil = true) =>
+    request<{ votosUtiles: number }>(`/resenas/${id}/voto`, {
+      method: 'POST',
+      body: JSON.stringify({ usuarioId, esUtil }),
+    }),
   eliminar: (id: number, usuarioId: number) =>
     request<{ mensaje: string }>(`/resenas/${id}?usuarioId=${usuarioId}`, {
       method: 'DELETE',
@@ -92,20 +112,37 @@ export const guardadosApi = {
     }),
 };
 
+export const estadisticasApi = {
+  obtener: () => request<EstadisticasResponse>('/estadisticas'),
+};
+
 export const adminApi = {
   pendientes: () => request<Resena[]>('/admin/resenas/pendientes'),
-  aprobar: (id: number) =>
-    request<{ mensaje: string }>(`/admin/resenas/${id}/aprobar`, { method: 'PUT' }),
-  rechazar: (id: number) =>
-    request<{ mensaje: string }>(`/admin/resenas/${id}/rechazar`, { method: 'PUT' }),
+  aprobar: (id: number, adminId?: number) =>
+    request<{ mensaje: string }>(`/admin/resenas/${id}/aprobar`, {
+      method: 'PUT',
+      body: JSON.stringify({ adminId }),
+    }),
+  rechazar: (id: number, adminId?: number, motivo?: string) =>
+    request<{ mensaje: string }>(`/admin/resenas/${id}/rechazar`, {
+      method: 'PUT',
+      body: JSON.stringify({ adminId, motivo }),
+    }),
   reporteDocentes: () => request<ReporteDocente[]>('/admin/reportes/docentes'),
   usuarios: () => request<UsuarioAdmin[]>('/admin/usuarios'),
+  historialModeracion: () => request<ModeracionHistorialItem[]>('/admin/moderacion/historial'),
+  recalcularMl: (adminId?: number) =>
+    request<{ mensaje: string; resumen: Record<string, unknown> }>('/admin/ml/recalcular', {
+      method: 'POST',
+      body: JSON.stringify({ adminId }),
+    }),
   crearDocente: (payload: {
     nombre: string;
     facultad: string;
     sede?: string;
     estiloEnsenanza: string;
     estiloEvaluacion: string;
+    modalidadPrincipal?: string;
     resumen?: string;
     etiquetas?: string;
     cursoIds?: number[];

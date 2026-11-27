@@ -8,6 +8,15 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SQL_DIR = path.resolve(__dirname, '../../sql');
 
 export async function initDatabase(pool = getPool()) {
+  const fullSchemaPath = path.join(SQL_DIR, 'docenteutp_schema.sql');
+  try {
+    const fullSql = await fs.readFile(fullSchemaPath, 'utf8');
+    await pool.query(fullSql);
+    return;
+  } catch (err) {
+    if (err?.code !== 'ENOENT') throw err;
+  }
+
   const schemaSql = await fs.readFile(path.join(SQL_DIR, 'schema.sql'), 'utf8');
   const seedSql = await fs.readFile(path.join(SQL_DIR, 'seed.sql'), 'utf8');
   await pool.query(schemaSql);

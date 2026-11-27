@@ -7,6 +7,7 @@ import cursosRoutes from './routes/cursos.routes.js';
 import resenasRoutes from './routes/resenas.routes.js';
 import guardadosRoutes from './routes/guardados.routes.js';
 import adminRoutes from './routes/admin.routes.js';
+import estadisticasRoutes from './routes/estadisticas.routes.js';
 import { errorHandler } from './utils/errors.js';
 import { query } from './db/pool.js';
 
@@ -48,6 +49,7 @@ export function createApp() {
   app.use('/api/resenas', resenasRoutes);
   app.use('/api/guardados', guardadosRoutes);
   app.use('/api/admin', adminRoutes);
+  app.use('/api/estadisticas', estadisticasRoutes);
 
   app.use((_req, res) => {
     res.status(404).json({ mensaje: 'Ruta no encontrada' });
